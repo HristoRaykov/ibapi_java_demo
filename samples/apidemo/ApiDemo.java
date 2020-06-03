@@ -1,6 +1,5 @@
 /* Copyright (C) 2019 Interactive Brokers LLC. All rights reserved. This code is subject to the terms
  * and conditions of the IB API Non-Commercial License or the IB API Commercial License, as applicable. */
-
 package apidemo;
 
 
@@ -56,27 +55,27 @@ public class ApiDemo implements IConnectionHandler {
 	JFrame frame() 					{ return m_frame; }
 	ILogger getInLogger()            { return m_inLogger; }
 	ILogger getOutLogger()           { return m_outLogger; }
-	
+
 	public static void main(String[] args) {
 		start( new ApiDemo( new DefaultConnectionConfiguration() ) );
 	}
-	
-    public static void start( ApiDemo apiDemo ) {
-        INSTANCE = apiDemo;
-        INSTANCE.run();
-    }
+
+	public static void start( ApiDemo apiDemo ) {
+		INSTANCE = apiDemo;
+		INSTANCE.run();
+	}
 
 	public ApiDemo( IConnectionConfiguration connectionConfig ) {
-		m_connectionConfiguration = connectionConfig; 
+		m_connectionConfiguration = connectionConfig;
 		m_connectionPanel = new ConnectionPanel(); // must be done after connection config is set
 	}
-	
-    public ApiController controller() {
-        if ( m_controller == null ) {
-            m_controller = new ApiController( this, getInLogger(), getOutLogger() );
-        }
-        return m_controller;
-    }
+
+	public ApiController controller() {
+		if ( m_controller == null ) {
+			m_controller = new ApiController( this, getInLogger(), getOutLogger() );
+		}
+		return m_controller;
+	}
 
 	private void run() {
 		m_tabbedPanel.addTab( "Connection", m_connectionPanel);
@@ -90,7 +89,7 @@ public class ApiDemo implements IConnectionHandler {
 		m_tabbedPanel.addTab( "Advisor", m_advisorPanel);
 		// m_tabbedPanel.addTab( "Strategy", m_stratPanel); in progress
 		m_tabbedPanel.addTab( "News", m_newsPanel);
-			
+
 		m_msg.setEditable( false);
 		m_msg.setLineWrap( true);
 		JScrollPane msgScroll = new JScrollPane( m_msg);
@@ -106,30 +105,30 @@ public class ApiDemo implements IConnectionHandler {
 		bot.addTab( "Messages", msgScroll);
 		bot.addTab( "Log (out)", outLogScroll);
 		bot.addTab( "Log (in)", inLogScroll);
-		
-        m_frame.add( m_tabbedPanel);
-        m_frame.add( bot, BorderLayout.SOUTH);
-        m_frame.setSize( 1024, 768);
-        m_frame.setVisible( true);
-        m_frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        
-        // make initial connection to local host, port 7496, client id 0, no connection options
+
+		m_frame.add( m_tabbedPanel);
+		m_frame.add( bot, BorderLayout.SOUTH);
+		m_frame.setSize( 1024, 768);
+		m_frame.setVisible( true);
+		m_frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+		// make initial connection to local host, port 7496, client id 0, no connection options
 		controller().connect( "127.0.0.1", 7496, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
-    }
-	
+	}
+
 	@Override public void connected() {
 		show( "connected");
 		m_connectionPanel.m_status.setText( "connected");
-		
+
 		controller().reqCurrentTime(time -> show( "Server date/time is " + Formats.fmtDate(time * 1000) ));
-		
+
 		controller().reqBulletins( true, (msgId, newsType, message, exchange) -> {
-            String str = String.format( "Received bulletin:  type=%s  exchange=%s", newsType, exchange);
-            show( str);
-            show( message);
-        });
+			String str = String.format( "Received bulletin:  type=%s  exchange=%s", newsType, exchange);
+			show( str);
+			show( message);
+		});
 	}
-	
+
 	@Override public void disconnected() {
 		show( "disconnected");
 		m_connectionPanel.m_status.setText( "disconnected");
@@ -143,7 +142,8 @@ public class ApiDemo implements IConnectionHandler {
 
 	@Override public void show( final String str) {
 		SwingUtilities.invokeLater(() -> {
-            m_msg.append(str);
+			m_msg.append(str);
+
             m_msg.append( "\n\n");
 
             Dimension d = m_msg.getSize();
