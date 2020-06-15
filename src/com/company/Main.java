@@ -1,12 +1,13 @@
 package com.company;
 
 import com.ib.client.Contract;
-import com.ib.client.EWrapper;
+
+import java.util.List;
 
 public class Main {
 
     public static void main(String[] args) {
-        EWrapperImpl app = new EWrapperImpl();
+        WatchlistDataRetriever app = new WatchlistDataRetriever();
         app.run();
 
         Contract contract = new Contract();
@@ -15,7 +16,7 @@ public class Main {
         contract.currency("USD");
         contract.exchange("SMART");
 
-        app.getData(contract);
+        var stock = app.getData(List.of(contract));
 
         app.stop();
     }

@@ -2,30 +2,50 @@ package com.company;
 
 import com.ib.client.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static apidemo.util.Util.sleep;
 
-public class EWrapperImpl implements EWrapper {
+public class WatchlistDataRetriever implements EWrapper {
 
-    private EReaderSignal m_signal;
-    private EClientSocket m_client;
+    // read messages from TWS
+    private final EReaderSignal m_signal;
+
+    // send messages to TWS
+    private final EClientSocket m_client;
+
+    // live (1) frozen (2) delayed (3) or delayed frozen (4)
+    private final int marketDataType;
+
+    private EReader reader;
+
     private int nextOrderId;
 
     private ContractDetails contractDetails;
 
+    private List<Stock> stocks;
+
+    private Map<Integer, Stock> stocksIdMap;
+
+    private Map<Integer, Contract> contractsIdMap;
 
 
-    public EWrapperImpl() {
+    public WatchlistDataRetriever(int marketDataType) {
+        this.marketDataType = marketDataType;
         this.m_signal = new EJavaSignal();
         this.m_client = new EClientSocket(this, m_signal);
+        this.stocksIdMap = new HashMap<>();
     }
 
-    public void run(){
-        final EReader reader = new EReader(m_client, m_signal);
 
+    public void run() {
+        m_client.reqMarketDataType(marketDataType);
+        m_client.eConnect("localhost", 4001, 0);
+
+        reader = new EReader(m_client, m_signal);
         reader.start();
         //An additional thread is created in this program design to empty the messaging queue
         new Thread(() -> {
@@ -34,7 +54,7 @@ public class EWrapperImpl implements EWrapper {
                 try {
                     reader.processMsgs();
                 } catch (Exception e) {
-                    System.out.println("Exception: "+e.getMessage());
+                    System.out.println("Exception: " + e.getMessage());
                 }
             }
         }).start();
@@ -44,15 +64,20 @@ public class EWrapperImpl implements EWrapper {
         }
     }
 
-    public void getData(Contract contract){
-        m_client.reqMktData(nextOrderId, contract, "225", false, false, null);
+    public void getData(List<Contract> contracts) {
+        stocks = StockFactory.getStocks(contracts);
+        stocksIdMap = IdMapFactory.createIdMap(nextOrderId, stocks);
+
+        contractsIdMap = IdMapFactory.createIdMap(nextOrderId, contracts);
+
+
+//        m_client.reqMktData(nextOrderId, contract, "225", false, false, null);
     }
 
 
-    public void stop(){
+    public void stop() {
         m_client.eDisconnect();
     }
-
 
 
     @Override
@@ -122,7 +147,7 @@ public class EWrapperImpl implements EWrapper {
 
     @Override
     public void nextValidId(int orderId) {
-        nextOrderId=orderId;
+        nextOrderId = orderId;
     }
 
     @Override
