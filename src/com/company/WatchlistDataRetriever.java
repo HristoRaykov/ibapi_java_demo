@@ -2,12 +2,15 @@ package com.company;
 
 import com.ib.client.*;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static apidemo.util.Util.sleep;
+
+// 1=bid, 2=ask, 4=last, 6=high, 7=low, 9=close
 
 public class WatchlistDataRetriever implements EWrapper {
 
@@ -32,6 +35,12 @@ public class WatchlistDataRetriever implements EWrapper {
 
     private Map<Integer, Contract> contractsIdMap;
 
+    private int stocksNumber;
+
+    private int updatedStocks;
+
+    private boolean areStocksUpdated;
+
 
     public WatchlistDataRetriever(int marketDataType) {
         this.marketDataType = marketDataType;
@@ -42,7 +51,7 @@ public class WatchlistDataRetriever implements EWrapper {
 
 
     public void run() {
-        m_client.reqMarketDataType(marketDataType);
+        //        m_client.reqMarketDataType(marketDataType);
         m_client.eConnect("localhost", 4001, 0);
 
         reader = new EReader(m_client, m_signal);
@@ -64,14 +73,26 @@ public class WatchlistDataRetriever implements EWrapper {
         }
     }
 
-    public void getData(List<Contract> contracts) {
+    public List<Stock> getData(List<Contract> contracts) {
+        areStocksUpdated = false;
+        updatedStocks = 0;
+        stocksNumber = contracts.size();
         stocks = StockFactory.getStocks(contracts);
         stocksIdMap = IdMapFactory.createIdMap(nextOrderId, stocks);
 
         contractsIdMap = IdMapFactory.createIdMap(nextOrderId, contracts);
 
+        for (Integer id : contractsIdMap.keySet()) {
+            m_client.reqMktData(id, contractsIdMap.get(id), "165, 225", false, false, null);
+        }
 
-//        m_client.reqMktData(nextOrderId, contract, "225", false, false, null);
+        while (true){
+            if (areStocksUpdated) {
+                return stocks;
+            }
+        }
+
+
     }
 
 
@@ -79,15 +100,76 @@ public class WatchlistDataRetriever implements EWrapper {
         m_client.eDisconnect();
     }
 
-
-    @Override
-    public void tickPrice(int tickerId, int field, double price, TickAttrib attrib) {
-
+    private void checkAreStocksUpdated(Stock stock) {
+        if (stock.isUpdated()) {
+            updatedStocks++;
+            if (updatedStocks == stocksNumber) {
+                areStocksUpdated = true;
+            }
+        }
     }
 
+
+    // fields:
+    // 9 - priorClose
+    // 4 - last
+    // 35 - auctionPrice
+    @Override
+    public void tickPrice(int tickerId, int field, double price, TickAttrib attrib) {
+        Stock stock = stocksIdMap.get(tickerId);
+        boolean hasChange = false;
+        switch (field) {
+            case 4:
+                stock.setLast(BigDecimal.valueOf(price));
+                hasChange = true;
+                break;
+            case 9:
+                stock.setPriorClose(BigDecimal.valueOf(price));
+                hasChange = true;
+                break;
+            case 35:
+                stock.setAuctionPrice(BigDecimal.valueOf(price));
+                hasChange = true;
+                break;
+        }
+
+        if (hasChange) {
+            checkAreStocksUpdated(stock);
+        }
+
+
+        System.out.println();
+    }
+
+
+
+    // 8 - volume
+    // 21 - averageVolume
+    // 36 - imbalance
     @Override
     public void tickSize(int tickerId, int field, int size) {
-        // 34 - 36
+        Stock stock = stocksIdMap.get(tickerId);
+        boolean hasChange = false;
+        switch (field) {
+            case 8:
+                stock.setVolume(size);
+                hasChange = true;
+                break;
+            case 21:
+                stock.setAverageVolume(size);
+                hasChange = true;
+                break;
+            case 36:
+                stock.setImbalance(size);
+                hasChange = true;
+                break;
+        }
+
+        if (hasChange) {
+            checkAreStocksUpdated(stock);
+        }
+
+        System.out.println();
     }
 
     @Override
