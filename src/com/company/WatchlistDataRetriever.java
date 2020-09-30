@@ -41,6 +41,8 @@ public class WatchlistDataRetriever implements EWrapper {
 
     private boolean areStocksUpdated;
 
+    private boolean isContractDetailsRetrieved;
+
 
     public WatchlistDataRetriever(int marketDataType) {
         this.marketDataType = marketDataType;
@@ -51,7 +53,7 @@ public class WatchlistDataRetriever implements EWrapper {
 
 
     public void run() {
-        //        m_client.reqMarketDataType(marketDataType);
+        m_client.reqMarketDataType(marketDataType);
         m_client.eConnect("localhost", 4001, 0);
 
         reader = new EReader(m_client, m_signal);
@@ -71,9 +73,13 @@ public class WatchlistDataRetriever implements EWrapper {
         if (nextOrderId < 0) {
             sleep(1000);
         }
+
+        m_client.reqMarketDataType(marketDataType);
     }
 
     public List<Stock> getData(List<Contract> contracts) {
+
+
         areStocksUpdated = false;
         updatedStocks = 0;
         stocksNumber = contracts.size();
@@ -82,6 +88,7 @@ public class WatchlistDataRetriever implements EWrapper {
 
         contractsIdMap = IdMapFactory.createIdMap(nextOrderId, contracts);
 
+        m_client.reqMarketDataType(marketDataType);
         for (Integer id : contractsIdMap.keySet()) {
             m_client.reqMktData(id, contractsIdMap.get(id), "165, 225", false, false, null);
         }
@@ -93,6 +100,17 @@ public class WatchlistDataRetriever implements EWrapper {
         }
 
 
+    }
+
+    public ContractDetails getContractDetails(Contract contract){
+        isContractDetailsRetrieved = false;
+        m_client.reqContractDetails(1, contract);
+
+        while (!isContractDetailsRetrieved) {
+            var x = 5;
+        }
+
+        return contractDetails;
     }
 
 
@@ -234,7 +252,7 @@ public class WatchlistDataRetriever implements EWrapper {
 
     @Override
     public void contractDetails(int reqId, ContractDetails contractDetails) {
-
+        this.contractDetails = contractDetails;
     }
 
     @Override
@@ -244,7 +262,7 @@ public class WatchlistDataRetriever implements EWrapper {
 
     @Override
     public void contractDetailsEnd(int reqId) {
-
+        isContractDetailsRetrieved = true;
     }
 
     @Override
@@ -329,7 +347,7 @@ public class WatchlistDataRetriever implements EWrapper {
 
     @Override
     public void marketDataType(int reqId, int marketDataType) {
-
+        var x = 5;
     }
 
     @Override
