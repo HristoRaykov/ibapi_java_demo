@@ -257,7 +257,7 @@ public class WatchlistDataRetriever implements EWrapper {
 
     @Override
     public void bondContractDetails(int reqId, ContractDetails contractDetails) {
-
+        this.contractDetails = contractDetails;
     }
 
     @Override
